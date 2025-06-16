@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulacro de Examen: Certificación GitHub Copilot</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .option.selected {
+            background-color: #3b82f6; /* bg-blue-600 */
+            color: white;
+            border-color: #2563eb; /* border-blue-700 */
+        }
+        .option.correct {
+            background-color: #22c55e; /* bg-green-500 */
+            color: white;
+        }
+        .option.incorrect {
+            background-color: #ef4444; /* bg-red-500 */
+            color: white;
+        }
+        .option:not(.disabled):hover {
+            background-color: #374151; /* bg-gray-600 */
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 flex items-center justify-center min-h-screen p-4">
+
+    <div id="quiz-container" class="w-full max-w-4xl mx-auto">
+        <div id="start-screen" class="text-center bg-gray-800 p-8 rounded-xl shadow-2xl">
+            <h1 class="text-4xl font-bold text-white mb-4">Simulacro de Examen: Certificación GitHub Copilot</h1>
+            <p class="text-gray-400 mb-8">Prepárate para la certificación con este examen de práctica de 100 preguntas.</p>
+            <button id="start-btn" class="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700 transition-colors text-xl">
+                Comenzar Examen
+            </button>
+        </div>
+
+        <div id="quiz-screen" class="hidden bg-gray-800 p-6 md:p-8 rounded-xl shadow-2xl">
+            <!-- Header con progreso -->
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-white">Pregunta <span id="question-number"></span> de 100</h2>
+                <div class="text-lg font-semibold text-blue-400">Dominio: <span id="domain-name"></span></div>
+            </div>
+
+            <!-- Barra de Progreso -->
+            <div class="w-full bg-gray-700 rounded-full h-2.5 mb-6">
+                <div id="progress-bar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+            </div>
+
+            <!-- Contenedor de la Pregunta -->
+            <div class="mb-6">
+                <p id="question-text" class="text-xl md:text-2xl font-medium leading-relaxed"></p>
+                <p id="multi-select-note" class="text-sm text-yellow-400 mt-2 hidden">(Selecciona todas las opciones aplicables)</p>
+            </div>
+
+            <!-- Opciones de Respuesta -->
+            <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                <!-- Las opciones se generan dinámicamente aquí -->
+            </div>
+
+            <!-- Navegación -->
+            <div class="flex justify-between items-center">
+                <button id="prev-btn" class="bg-gray-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Anterior</button>
+                <button id="next-btn" class="bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-blue-700 transition-colors">Siguiente</button>
+                <button id="finish-btn" class="hidden bg-green-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-green-700 transition-colors">Finalizar</button>
+            </div>
+        </div>
+        
+        <div id="result-screen" class="hidden text-center bg-gray-800 p-8 rounded-xl shadow-2xl">
+            <h1 class="text-4xl font-bold text-white mb-4">¡Examen Completado!</h1>
+            <p class="text-2xl text-gray-300 mb-2">Tu puntuación final es:</p>
+            <div id="score" class="text-6xl font-bold text-blue-400 mb-6"></div>
+            <div class="flex justify-center gap-4 text-xl mb-8">
+                <div><span id="correct-answers" class="font-bold text-green-400"></span> Correctas</div>
+                <div><span id="incorrect-answers" class="font-bold text-red-400"></span> Incorrectas</div>
+            </div>
+            <div class="flex justify-center gap-4">
+                <button id="restart-btn" class="bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors">Reiniciar Examen</button>
+                <button id="review-btn" class="bg-gray-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-gray-700 transition-colors">Revisar Respuestas</button>
+            </div>
+        </div>
+
+        <div id="review-screen" class="hidden bg-gray-800 p-6 md:p-8 rounded-xl shadow-2xl">
+             <div class="flex justify-between items-center mb-6">
+                <h2 class="text-3xl font-bold text-white">Revisión del Examen</h2>
+                <button id="back-to-results-btn" class="bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-blue-700 transition-colors">Volver a Resultados</button>
+            </div>
+            <div id="review-content" class="space-y-8">
+                <!-- La revisión se genera dinámicamente aquí -->
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const quizData = [
+            // Dominio 1: IA Responsable (7%)
+            {
+                domain: "IA Responsable",
+                question: "Verdadero o falso: Las sugerencias de código generadas por GitHub Copilot deben considerarse confiables sin necesidad de revisión, ya que la IA garantiza que estén libres de errores y vulnerabilidades.",
+                options: [{ text: "Verdadero" }, { text: "Falso", correct: true }],
+                explanation: "Ninguna herramienta de IA garantiza que el código sugerido esté libre de errores o vulnerabilidades. GitHub Copilot puede sugerir código útil, pero siempre se requiere la revisión y validación por parte del desarrollador."
+            },
+            {
+                domain: "IA Responsable",
+                question: "Estás utilizando GitHub Copilot para ayudarte a desarrollar una aplicación web. Copilot genera un fragmento de código SQL para consultar la base de datos. Antes de incorporar ese código, ¿qué acción responsable deberías realizar?",
+                options: [
+                    { text: "Aceptar directamente la sugerencia y desplegar la aplicación si la consulta funciona." },
+                    { text: "Revisar y probar el código sugerido, verificando que no tenga problemas de seguridad (por ejemplo, inyecciones SQL) antes de usarlo en tu proyecto.", correct: true },
+                    { text: "Confiar en que Copilot no produce código vulnerable y omitir pruebas adicionales, ya que proviene de un modelo de IA avanzado." },
+                    { text: "Solicitar a Copilot otra sugerencia hasta que el código generado no necesite revisión manual." }
+                ],
+                explanation: "La práctica responsable es revisar y probar cualquier código sugerido por Copilot antes de adoptarlo, especialmente para verificar vulnerabilidades de seguridad como inyecciones SQL."
+            },
+            {
+                domain: "IA Responsable",
+                question: "Un desarrollador junior expresa preocupación de que GitHub Copilot pueda introducir sesgos o contenido inapropiado en el código base de la aplicación. Como líder de equipo, ¿qué le aconsejas para promover el uso responsable de la IA en el desarrollo?",
+                options: [
+                    { text: "Utilizar siempre Copilot en modo 'estricto' para filtrar cualquier sesgo." },
+                    { text: "Revisar y probar cuidadosamente el código que sugiere Copilot, y complementar con análisis estáticos o revisiones de código para detectar posibles sesgos o errores.", correct: true },
+                    { text: "Confiar únicamente en Copilot para las secciones críticas." },
+                    { text: "Evitar por completo el uso de Copilot en cualquier proyecto importante." }
+                ],
+                explanation: "Se debe enfatizar la supervisión humana y las buenas prácticas: revisar el código generado, usar herramientas de análisis (linting, escaneo de seguridad) y realizar pruebas. La validación humana es esencial."
+            },
+            {
+                domain: "IA Responsable",
+                question: "GitHub Copilot sugiere un bloque de código que funciona correctamente, pero proviene de un proyecto con una licencia de código abierto muy restrictiva. ¿Cuál es una posible consecuencia negativa de usar directamente esa sugerencia en tu proyecto sin tomar medidas adicionales?",
+                options: [
+                    { text: "Ninguna, ya que el código generado por Copilot está libre de restricciones de derechos de autor." },
+                    { text: "Podrías violar licencias o derechos de autor si el código es idéntico a un fragmento con copyright, lo que podría acarrear problemas legales.", correct: true },
+                    { text: "Tu proyecto heredará automáticamente la licencia del código sugerido." },
+                    { text: "Copilot notificará al autor original del código sobre tu uso." }
+                ],
+                explanation: "Existe el riesgo de infringir licencias si Copilot sugiere código idéntico a algún repositorio público con copyright. El desarrollador es responsable de asegurar que el código usado cumple las licencias aplicables."
+            },
+            {
+                domain: "IA Responsable",
+                question: "Tu equipo está experimentando con GitHub Copilot. Un desarrollador muestra inquietud por la seguridad de código generado (posibles vulnerabilidades) y por infracciones de derechos de autor en las sugerencias. ¿Qué medidas deben tomarse para mitigar estos riesgos potenciales al utilizar Copilot? (Selecciona dos opciones.)",
+                options: [
+                    { text: "Deshabilitar completamente GitHub Copilot y prohibir su uso en el equipo." },
+                    { text: "Establecer una política donde todo código sugerido por Copilot sea revisado manualmente.", correct: true },
+                    { text: "Confiar solo en el filtro automático de Copilot para evitar código inseguro." },
+                    { text: "Formar a los desarrolladores en uso ético y responsable de Copilot, y utilizar herramientas de análisis de código para verificar la calidad.", correct: true },
+                    { text: "Usar siempre la última versión del modelo de IA de Copilot." }
+                ],
+                multiSelect: true,
+                explanation: "Es fundamental capacitar al equipo para revisar cuidadosamente el código sugerido (comprobando vulnerabilidades y licencias) y fomentar un uso responsable (no aceptar ciegamente sugerencias)."
+            },
+            {
+                domain: "IA Responsable",
+                question: "GitHub Copilot puede ayudar a acelerar el desarrollo, pero ¿cuál de las siguientes es una limitación conocida de las herramientas de IA generativa como Copilot que los desarrolladores deben tener en cuenta?",
+                options: [
+                    { text: "A veces Copilot puede generar código que no compila o no funciona correctamente en el contexto específico del proyecto.", correct: true },
+                    { text: "Copilot aprende en tiempo real del código privado del usuario." },
+                    { text: "El modelo 'entiende' la intención del proyecto y siempre sugerirá la implementación óptima." },
+                    { text: "Copilot puede razonar sobre la intención de negocio y anticipar requisitos no especificados." }
+                ],
+                explanation: "Una limitación conocida es que Copilot puede generar código sintácticamente correcto que sin embargo no compile o no funcione exactamente en tu contexto. El modelo no tiene garantía de exactitud o ejecución."
+            },
+            {
+                domain: "IA Responsable",
+                question: "Para operar con IA de manera ética y responsable, un desarrollador que utiliza GitHub Copilot debería...",
+                options: [
+                    { text: "Usar las sugerencias de Copilot tal cual, pero agregando un comentario indicando que proviene de una IA." },
+                    { text: "Mantener la supervisión humana: validar la exactitud, seguridad y cumplimiento de licencias del código sugerido antes de integrarlo.", correct: true },
+                    { text: "Evitar escribir comentarios o descripciones detalladas para que Copilot tenga más libertad creativa." },
+                    { text: "Suponer que las sugerencias de Copilot reflejan las decisiones éticas de su organización." }
+                ],
+                explanation: "Usar Copilot de forma responsable implica mantener precauciones similares a las que tienes con código escrito por personas: validar que funcione correctamente, que sea seguro y adecuado en el contexto."
+            },
+            // Dominio 2: Planes y características de GitHub Copilot (31%)
+            {
+                domain: "Planes y características",
+                question: "¿Cuál de las siguientes no es una diferencia entre GitHub Copilot Individual y GitHub Copilot Business?",
+                options: [
+                    { text: "Indemnización de IP" },
+                    { text: "Exclusión de datos" },
+                    { text: "Gestión organizacional" },
+                    { text: "Integración con repositorios corporativos.", correct: true }
+                ],
+                explanation: "La afirmación 'Copilot Individual ofrece más integración que Business' es falsa. De hecho, Business tiene ventajas para empresas, pero la integración con repos privados es similar o mejor."
+            },
+            {
+                domain: "Planes y características",
+                question: "Eres el administrador de una empresa que quiere usar GitHub Copilot, pero no utilizan GitHub Enterprise para alojar su código. ¿Qué opción de suscripción sería la adecuada?",
+                options: [
+                    { text: "GitHub Copilot Individual" },
+                    { text: "GitHub Copilot Business (modo Stand-alone)", correct: true },
+                    { text: "GitHub Copilot Enterprise" },
+                    { text: "No es posible utilizar GitHub Copilot sin GitHub Enterprise." }
+                ],
+                explanation: "GitHub Copilot Business tiene una modalidad para clientes que no usan GitHub Enterprise Cloud (Copilot Business Standalone), permitiendo gestionar usuarios y políticas aunque el código no esté en GitHub Enterprise."
+            },
+            {
+                domain: "Planes y características",
+                question: "Tu equipo de desarrollo trabaja con repositorios tanto públicos como privados y está evaluando qué plan de GitHub Copilot adoptar. Algunos desarrolladores necesitan funciones avanzadas a nivel empresarial. ¿Cuál plan sería el más adecuado?",
+                options: [
+                    { text: "GitHub Copilot Individual" },
+                    { text: "GitHub Copilot Business", correct: true },
+                    { text: "GitHub Copilot Enterprise" },
+                    { text: "GitHub Copilot para Educación" }
+                ],
+                explanation: "Dado que el equipo necesita funciones empresariales para varios desarrolladores con control central, GitHub Copilot Business es la elección acertada."
+            },
+            {
+                domain: "Planes y características",
+                question: "Una empresa está comparando Copilot Business con Copilot Enterprise. ¿Cuál de las siguientes funcionalidades está disponible solo en Copilot Enterprise, pero no en Copilot Business?",
+                options: [
+                    { text: "Uso de GitHub Copilot Chat dentro de Visual Studio Code." },
+                    { text: "Bases de conocimiento (Knowledge Bases) para Copilot.", correct: true },
+                    { text: "Exclusión de contenido para que Copilot no use ciertos archivos." },
+                    { text: "Posibilidad de bloquear sugerencias que coincidan con código público." }
+                ],
+                explanation: "Las Bases de Conocimiento (Knowledge Bases) son una característica exclusiva de Copilot Enterprise. Permiten a la organización integrar su documentación interna para enriquecer las respuestas de Copilot Chat."
+            },
+            {
+                domain: "Planes y características",
+                question: "Verdadero o falso: GitHub Copilot Enterprise y Copilot Business ofrecen indemnización por propiedad intelectual (IP indemnity) a sus usuarios.",
+                options: [{ text: "Verdadero", correct: true }, { text: "Falso" }],
+                explanation: "GitHub Copilot Business y Enterprise incluyen indemnización de propiedad intelectual a sus clientes, defendiéndolos en caso de reclamos de copyright relacionados con sugerencias, bajo ciertas condiciones."
+            },
+            {
+                domain: "Planes y características",
+                question: "¿Qué necesitas para utilizar GitHub Copilot Chat en Visual Studio Code?",
+                options: [
+                    { text: "Ningún componente extra." },
+                    { text: "Instalar la extensión de GitHub Copilot Chat por separado y tener una suscripción que lo incluya.", correct: true },
+                    { text: "Un token de acceso personal (PAT) con permisos de chat." },
+                    { text: "No es posible usar Copilot Chat en VS Code." }
+                ],
+                explanation: "Para usar Copilot Chat en VS Code debes instalar la extensión 'GitHub Copilot Chat' adicional y tener una suscripción activa que lo incluya (ej. Copilot for Business)."
+            },
+            {
+                domain: "Planes y características",
+                question: "¿Cuál de las siguientes no es una forma de invocar o usar las capacidades de GitHub Copilot?",
+                options: [
+                    { text: "Escribir un comentario descriptivo." },
+                    { text: "Usar atajos de teclado para recorrer sugerencias." },
+                    { text: "Hablarle en voz alta al editor.", correct: true },
+                    { text: "Usar Copilot Chat para hacer preguntas." }
+                ],
+                explanation: "Hablarle en voz alta al editor no es una forma soportada de invocar Copilot. Copilot no tiene reconocimiento de voz integrado."
+            },
+            // Pregunta 21
+            {
+                domain: "Planes y características",
+                question: "Estás en Visual Studio Code y quieres que GitHub Copilot te sugiera cómo manejar excepciones en un bloque try/catch. ¿Cómo podrías aprovechar Copilot para obtener esa sugerencia?",
+                options: [
+                    { text: "Escribir un comentario dentro del bloque catch describiendo la acción deseada." },
+                    { text: "Copilot no puede ayudar con manejo de excepciones." },
+                    { text: "Invocar a Copilot Chat y preguntarle: '¿Cómo manejo esta excepción?'" },
+                    { text: "Tanto A como C son formas válidas de obtener ayuda de Copilot para este caso.", correct: true }
+                ],
+                explanation: "Puedes aprovechar Copilot de múltiples formas para el manejo de excepciones: escribiendo un comentario en el `catch` o preguntando directamente a Copilot Chat."
+            },
+            // Pregunta 22
+            {
+                domain: "Planes y características",
+                question: "Quieres instalar GitHub Copilot en la interfaz de línea de comandos (CLI). ¿Cuál es el proceso correcto?",
+                options: [
+                    { text: "Clonar el repositorio y ejecutar `make install`." },
+                    { text: "Usar Homebrew con `brew install github-copilot`." },
+                    { text: "Instalar la herramienta GitHub Copilot CLI via NPM y ejecutar `copilot-cli setup`.", correct: true },
+                    { text: "Instalar GitHub Copilot CLI a través de `pip`." }
+                ],
+                explanation: "El método oficial (o más común) es instalarlo vía Node/NPM y luego configurarlo con `copilot setup` para autenticar."
+            },
+            // Pregunta 23
+            {
+                domain: "Planes y características",
+                question: "Una vez instalado GitHub Copilot CLI, el comando `??` en la terminal te permite:",
+                options: [
+                    { text: "Traducir instrucciones en lenguaje natural a comandos de shell arbitrarios.", correct: true },
+                    { text: "Buscar en la documentación de GitHub CLI (gh)." },
+                    { text: "Pedir ayuda sobre un mensaje de error reciente." },
+                    { text: "Generar automáticamente un script bash completo." }
+                ],
+                explanation: "El comando `??` de Copilot CLI se usa para describir en lenguaje natural una tarea de shell y obtener el comando correspondiente."
+            },
+            // Pregunta 24
+            {
+                domain: "Planes y características",
+                question: "¿Qué comando de Copilot CLI usarías para obtener una sugerencia de un comando Git específico a partir de una descripción en lenguaje natural?",
+                options: [
+                    { text: "Usar `??` para todo tipo de comandos, incluyendo Git." },
+                    { text: "El comando `git?`, seguido de tu petición en lenguaje natural.", correct: true },
+                    { text: "El comando `gh?`." },
+                    { text: "Es necesario abrir Copilot Chat." }
+                ],
+                explanation: "El comando `git?` en Copilot CLI es el alias específico para pedir comandos de Git a partir de una descripción natural."
+            },
+            // Pregunta 25
+            {
+                domain: "Planes y características",
+                question: "En GitHub Copilot Chat, si quieres que Copilot genere pruebas unitarias para el código seleccionado, ¿qué comando rápido podrías usar?",
+                options: [
+                    { text: "Escribir `/tests` en el chat.", correct: true },
+                    { text: "Usar `/unittest` seguido del nombre de la función." },
+                    { text: "Escribir `/assert` para generar aserciones." },
+                    { text: "Escribir `!test` en el chat." }
+                ],
+                explanation: "Escribir `/tests` en Copilot Chat es el slash command documentado para indicarle al asistente que genere tests unitarios para el código seleccionado."
+            },
+            // Pregunta 26
+            {
+                domain: "Planes y características",
+                question: "¿Cuál de los siguientes slash commands no está disponible en GitHub Copilot Chat?",
+                options: [
+                    { text: "/explain" },
+                    { text: "/doc" },
+                    { text: "/fix" },
+                    { text: "/debug", correct: true }
+                ],
+                explanation: "Los slash commands disponibles incluyen `/explain`, `/doc`, `/fix`, `/optimize`, `/tests`, etc. `/debug` no está en la lista de comandos comunes."
+            },
+            // Pregunta 27
+            {
+                domain: "Planes y características",
+                question: "Estás usando GitHub Copilot Chat en la web de GitHub.com (en una Pull Request). ¿Qué ventaja ofrece?",
+                options: [
+                    { text: "Resumir discusiones enteras de issues." },
+                    { text: "Ayudarte a entender el cambio propuesto haciendo preguntas sobre el diff o solicitando explicaciones.", correct: true },
+                    { text: "Permitir a los colaboradores chatear entre sí en tiempo real." },
+                    { text: "Copilot Chat solo está disponible en los IDE." }
+                ],
+                explanation: "En GitHub.com, Copilot Chat te permite hacer preguntas sobre los cambios en la PR o el código del repositorio, ayudando a entender sin salir de la página."
+            },
+            // Pregunta 28
+            {
+                domain: "Planes y características",
+                question: "GitHub Copilot Enterprise introdujo la característica de resúmenes de solicitudes de incorporación de cambios (Pull Request summaries). ¿Qué hace esta funcionalidad?",
+                options: [
+                    { text: "Lee automáticamente la descripción escrita por el autor de la PR." },
+                    { text: "Genera una descripción resumida de los cambios de la PR, resaltando las modificaciones clave.", correct: true },
+                    { text: "Compara la PR con solicitudes similares en otros repositorios." },
+                    { text: "Añade etiquetas de clasificación a la PR." }
+                ],
+                explanation: "La funcionalidad de resúmenes de PR permite generar automáticamente un resumen de los cambios, facilitando que los revisores entiendan de qué trata la PR sin leer todos los diffs."
+            },
+            // Pregunta 29
+            {
+                domain: "Planes y características",
+                question: "¿Cuál es el propósito de una Base de conocimiento (Knowledge Base) en GitHub Copilot Enterprise?",
+                options: [
+                    { text: "Almacenar fragmentos de código muy usados para que Copilot los inserte automáticamente." },
+                    { text: "Permitir a la organización indexar documentación interna en Markdown para que Copilot Chat la use como contexto.", correct: true },
+                    { text: "Proporcionar a cada desarrollador un espacio aislado para guardar sus propias notas." },
+                    { text: "Almacenar datos de entrenamiento personalizados que reemplazan el modelo base." }
+                ],
+                explanation: "Las Bases de Conocimiento en Copilot Enterprise permiten indexar documentación interna para que Copilot Chat use esa información al responder preguntas sobre prácticas internas de la organización."
+            },
+            // Pregunta 30
+            {
+                domain: "Planes y características",
+                question: "Tu organización planea crear un modelo personalizado de GitHub Copilot usando su código fuente privado. ¿Qué afirmación sobre esta capacidad es correcta?",
+                options: [
+                    { text: "GitHub Copilot Enterprise permite entrenar modelos personalizados (fine-tuning) basados en el código de la organización.", correct: true },
+                    { text: "GitHub Copilot Business permite a cada usuario ajustar ligeramente el modelo." },
+                    { text: "Una vez entrenado, un modelo personalizado reemplaza al modelo original para todas las organizaciones." },
+                    { text: "Los modelos personalizados se entrenan localmente." }
+                ],
+                explanation: "Copilot Enterprise permite a las organizaciones crear modelos personalizados (fine-tuning) con su propio código para ajustar las sugerencias a su estilo y código propietario."
+            },
+            // Pregunta 31
+            {
+                domain: "Planes y características",
+                question: "¿Cuál es una diferencia clave entre GitHub Copilot Chat y la funcionalidad de finalización de código normal de Copilot?",
+                options: [
+                    { text: "Copilot Chat puede interactuar en lenguaje natural, mientras la finalización normal solo sugiere continuaciones de código.", correct: true },
+                    { text: "No hay diferencia, es solo una interfaz distinta." },
+                    { text: "Copilot Chat solo funciona para lenguajes interpretados." },
+                    { text: "La finalización de código puede funcionar sin conexión, pero Chat no." }
+                ],
+                explanation: "La diferencia principal es que la finalización normal genera código inline basado en contexto inmediato, mientras que Copilot Chat permite una interacción conversacional en lenguaje natural."
+            },
+            // Pregunta 32
+            {
+                domain: "Planes y características",
+                question: "Verdadero o falso: GitHub Copilot Individual permite a un usuario excluir ciertos archivos o carpetas específicos para que no se usen en las sugerencias de código.",
+                options: [{ text: "Verdadero" }, { text: "Falso", correct: true }],
+                explanation: "Solo Copilot Business/Enterprise tienen oficialmente la función de exclusión de contenido a nivel de organización o repo. Copilot Individual no ofrece una opción global como un `.copilotignore`."
+            },
+            // Pregunta 33
+            {
+                domain: "Planes y características",
+                question: "Tienes habilitado GitHub Copilot en Visual Studio Code. ¿Cómo puedes compartir tus comentarios o reportar sugerencias inadecuadas?",
+                options: [
+                    { text: "Utilizando la opción de 'feedback' integrada (iconos 👍/👎).", correct: true },
+                    { text: "Enviando un correo al soporte de GitHub." },
+                    { text: "Haciendo una nueva Pull Request en el repositorio de Copilot." },
+                    { text: "No es necesario dar feedback." }
+                ],
+                explanation: "En la interfaz de Copilot (ej. VS Code) existe un mecanismo de feedback integrado, típicamente con iconos de pulgar arriba/abajo para calificar las sugerencias."
+            },
+            // Pregunta 34
+            {
+                domain: "Planes y características",
+                question: "Un miembro de tu equipo pregunta qué editores o IDEs son compatibles con GitHub Copilot. ¿Cuál es la respuesta correcta?",
+                options: [
+                    { text: "Solo funciona oficialmente en Visual Studio Code." },
+                    { text: "Se integra con varios IDEs populares, incluyendo Visual Studio Code, Visual Studio 2022, editores de JetBrains, Neovim, entre otros.", correct: true },
+                    { text: "Se usa mediante una interfaz web independiente." },
+                    { text: "Funciona en cualquier editor de texto plano con GitHub Desktop." }
+                ],
+                explanation: "GitHub Copilot es compatible con una amplia gama de editores populares, incluyendo los de Microsoft, JetBrains, y Neovim."
+            },
+            // Pregunta 35
+            {
+                domain: "Planes y características",
+                question: "¿Qué son los comandos 'slash' en Copilot Chat y cómo se usan?",
+                options: [
+                    { text: "Son atajos (comenzando con /) que puedes escribir en la ventana de Chat para indicar rápidamente el tipo de acción que necesitas.", correct: true },
+                    { text: "Es una sintaxis especial para invocar funcionalidades de GitHub." },
+                    { text: "Es una forma de comentar el código generando comandos que Copilot ignorará." },
+                    { text: "No existe tal concepto; se refiere a funcionalidades de Slack/Discord." }
+                ],
+                explanation: "Los slash commands en Copilot Chat son atajos predefinidos iniciados con `/` que permiten solicitar rápidamente acciones comunes sin escribir un prompt extenso (ej. /explain, /tests)."
+            },
+            // Pregunta 36
+            {
+                domain: "Planes y características",
+                question: "Un desarrollador quiere aportar sugerencias o reportar problemas relacionados con GitHub Copilot. ¿Qué podría hacer?",
+                options: [
+                    { text: "Abrir un issue o discusión en el repositorio público de feedback de GitHub." },
+                    { text: "Utilizar la opción 'Enviar comentarios' en la interfaz de Copilot." },
+                    { text: "Ambas A y B son correctas.", correct: true },
+                    { text: "No hay forma oficial de dar sugerencias." }
+                ],
+                explanation: "Tanto abrir issues/discusiones en los foros de la comunidad de GitHub como usar la interfaz de feedback en la extensión son formas válidas de aportar feedback."
+            },
+            // Pregunta 37
+            {
+                domain: "Planes y características",
+                question: "¿Qué opción ofrece GitHub Copilot Business para que una organización controle centralmente el uso de Copilot?",
+                options: [
+                    { text: "Permite asignar o revocar licencias de Copilot a los desarrolladores desde la configuración de la organización.", correct: true },
+                    { text: "Ofrece paneles de administración para ver el historial de sugerencias en tiempo real." },
+                    { text: "Permite conectar Copilot a un servidor proxy local." },
+                    { text: "No ofrece controles adicionales; funciona igual que Copilot Individual." }
+                ],
+                explanation: "Copilot Business permite a los administradores asignar y revocar licencias a usuarios en su organización a través de la configuración, lo que es una forma de control central."
+            },
+            // Pregunta 38
+            {
+                domain: "Planes y características",
+                question: "Un administrador desea auditar el uso de GitHub Copilot en su organización (Copilot Business). ¿Cuál de las siguientes afirmaciones es correcta?",
+                options: [
+                    { text: "GitHub Copilot Business registra eventos en los logs de auditoría de la organización.", correct: true },
+                    { text: "No hay integración con las auditorías." },
+                    { text: "Copilot envía un email diario al administrador con un resumen." },
+                    { text: "GitHub proporciona una herramienta CLI separada para exportar información." }
+                ],
+                explanation: "Copilot Business integra eventos en el log de auditoría de GitHub Enterprise Cloud, permitiendo a los administradores monitorear configuraciones y uso."
+            },
+            // Dominio 3: ¿Cómo funciona GitHub Copilot y cómo maneja los datos? (15%)
+            {
+                domain: "Funcionamiento y Datos",
+                question: "¿Cómo es capaz Copilot de identificar y sugerir código en múltiples lenguajes a la vez?",
+                options: [
+                    { text: "Requiere configuración manual del lenguaje." },
+                    { text: "Utiliza un modelo de IA único entrenado en múltiples lenguajes de programación.", correct: true },
+                    { text: "Emplea modelos separados para cada lenguaje." },
+                    { text: "Solo funciona correctamente en un lenguaje a la vez." }
+                ],
+                explanation: "Copilot está impulsado por un único y versátil modelo de lenguaje grande (LLM) entrenado en múltiples lenguajes, lo que le permite reconocer contextos y sintaxis diversas."
+            },
+            {
+                domain: "Funcionamiento y Datos",
+                question: "¿Qué fuentes de contexto utiliza GitHub Copilot para generar una sugerencia de código dentro de tu IDE?",
+                options: [
+                    { text: "Principalmente el contenido del archivo actual y, en algunos casos, otros archivos abiertos.", correct: true },
+                    { text: "Analiza toda tu base de código completa en GitHub cada vez." },
+                    { text: "Solo considera la última línea de código escrita." },
+                    { text: "Toma en cuenta la hora del día y tu historial de ediciones." }
+                ],
+                explanation: "Copilot toma como contexto principal el código del archivo actual en la región cercana al cursor, así como otros archivos abiertos o referenciados. No indexa todo el repositorio globalmente."
+            },
+            {
+                domain: "Funcionamiento y Datos",
+                question: "GitHub Copilot sigue un ciclo de vida de procesamiento de datos. Ordena las siguientes etapas:",
+                options: [
+                    { text: "1. Recoge contexto -> 3. Construye prompt -> 2. Aplica filtros -> 4. Genera sugerencia -> 5. Posprocesa -> 6. Envía al IDE" },
+                    { text: "1. Recoge contexto -> 2. Aplica filtros -> 3. Construye prompt -> 4. Genera sugerencia -> 5. Posprocesa -> 6. Envía al IDE", correct: true },
+                    { text: "3. Construye prompt -> 1. Recoge contexto -> 2. Aplica filtros -> 4. Genera sugerencia -> 5. Posprocesa -> 6. Envía al IDE" },
+                    { text: "1. Recoge contexto -> 4. Genera sugerencia -> 3. Construye prompt -> 2. Aplica filtros -> 5. Posprocesa -> 6. Envía al IDE" }
+                ],
+                explanation: "El orden correcto es: 1. El plugin recoge contexto, 2. Se envía al proxy y se aplican filtros, 3. Se construye el prompt y se envía al modelo, 4. El modelo genera respuesta, 5. El proxy aplica postprocesado y filtros, y 6. La sugerencia llega al IDE."
+            },
+            {
+                domain: "Funcionamiento y Datos",
+                question: "¿Qué sucede con el código y los datos de tu proyecto cuando utilizas GitHub Copilot Individual vs Copilot Business?",
+                options: [
+                    { text: "En Copilot Individual, fragmentos de código pueden ser recopilados por GitHub para mejorar el modelo (a menos que se desactive), mientras que en Copilot Business no se retiene ningún fragmento por defecto.", correct: true },
+                    { text: "En ambos casos, todo tu código se envía a GitHub y se agrega a los datos de entrenamiento." },
+                    { text: "Copilot Individual envía tus datos a OpenAI directamente, mientras que Copilot Business los anonimiza." },
+                    { text: "Copilot Business funciona completamente local." }
+                ],
+                explanation: "En Copilot Individual, por defecto se podría usar tus datos para mejorar el modelo (puedes optar por bloquearlo). En Copilot Business, GitHub no retiene snippets de código por defecto ('cero retención')."
+            },
+            {
+                domain: "Funcionamiento y Datos",
+                question: "¿Cómo maneja GitHub Copilot una solicitud de autocompletado en comparación con una consulta en Copilot Chat?",
+                options: [
+                    { text: "En autocompletado, envía el contexto de código inmediato. En Chat, además del código, envía el historial de la conversación y la pregunta del usuario.", correct: true },
+                    { text: "No hay diferencia; ambos envían exactamente los mismos datos." },
+                    { text: "Copilot Chat funciona offline con un modelo local." },
+                    { text: "El autocompletado envía toda la base de código, pero Chat solo envía fragmentos pequeños." }
+                ],
+                explanation: "Para autocompletado, Copilot envía el texto contextual. En Copilot Chat, se envía además la conversación previa y la pregunta del usuario, permitiendo respuestas más elaboradas."
+            },
+            {
+                domain: "Funcionamiento y Datos",
+                question: "Uno de los filtros previos que aplica GitHub Copilot es revisar si el contenido contiene información sensible. ¿Qué podría hacer si detecta un secreto de API?",
+                options: [
+                    { text: "Reemplazar esa parte del contenido por asteriscos u omitirla en el prompt enviado al modelo.", correct: true },
+                    { text: "Detener la generación y devolver un mensaje de error." },
+                    { text: "Pasar la solicitud igualmente pero activar un registro interno." },
+                    { text: "Ninguna de las anteriores; Copilot no tiene filtros de ese tipo." }
+                ],
+                explanation: "Si Copilot detecta potencial información sensible, podría omitir o enmascarar esa parte en el prompt enviado para no exponerla al modelo."
+            },
+            {
+                domain: "Funcionamiento y Datos",
+                question: "El modelo de GitHub Copilot fue entrenado con una gran cantidad de código público. ¿Qué efecto puede tener esto en las sugerencias?",
+                options: [
+                    { text: "Puede tender a sugerir soluciones comunes o populares (efecto 'código más visto').", correct: true },
+                    { text: "Suele sugerir únicamente código completamente original." },
+                    { text: "Ignora patrones comunes para darte una solución única." },
+                    { text: "Prefiere código obsoleto." }
+                ],
+                explanation: "Debido al entrenamiento en muchos repositorios públicos, Copilot a veces sugiere soluciones típicas y comunes, que pueden no ser necesariamente las más óptimas para tu caso específico."
+            },
+            {
+                domain: "Funcionamiento y Datos",
+                question: "Dado que el modelo de Copilot fue entrenado con datos que tienen cierta antigüedad, ¿qué limitación relacionada con el 'tiempo' podría tener?",
+                options: [
+                    { text: "Podría sugerir uso de API o funciones deprecadas o antiguas.", correct: true },
+                    { text: "Se vuelve más lento con el tiempo." },
+                    { text: "Las sugerencias expiran después de cierto tiempo." },
+                    { text: "Ninguna, siempre sugiere las soluciones más actualizadas." }
+                ],
+                explanation: "Copilot fue entrenado con datos hasta cierta fecha. Por tanto, puede que no conozca APIs añadidas recientemente o sugiera prácticas ya obsoletas si eran comunes en su dataset."
+            },
+            {
+                domain: "Funcionamiento y Datos",
+                question: "Verdadero o falso: GitHub Copilot puede realizar operaciones matemáticas complejas o precisas con total confiabilidad.",
+                options: [{ text: "Verdadero" }, { text: "Falso", correct: true }],
+                explanation: "Los modelos de lenguaje como Copilot no realizan cálculos matemáticos reales; simplemente generan texto plausible. Pueden fallar en operaciones complejas o de precisión."
+            },
+            {
+                domain: "Funcionamiento y Datos",
+                question: "Trabajando en un archivo de código de ~3000 líneas, notas que GitHub Copilot deja de sugerir contenido relevante cuando estás editando cerca del final. ¿A qué podría deberse?",
+                options: [
+                    { text: "Copilot tiene un límite de 'ventana de contexto'; en archivos muy grandes, partes del archivo pueden quedar fuera.", correct: true },
+                    { text: "Copilot prioriza archivos pequeños y se desactiva en los grandes." },
+                    { text: "Es un bug conocido: no maneja archivos de más de 1000 líneas." },
+                    { text: "Copilot requiere que los archivos grandes estén en repositorios públicos." }
+                ],
+                explanation: "Copilot tiene un límite en la cantidad de contexto que puede procesar (ventana de contexto). En archivos muy grandes, no todo el contenido entra en la ventana, afectando la calidad de las sugerencias."
+            },
+            {
+                domain: "Funcionamiento y Datos",
+                question: "Has observado que a veces Copilot produce la misma estructura de código para ciertos problemas. ¿Por qué suele ofrecer patrones de solución similares?",
+                options: [
+                    { text: "Porque probablemente esos patrones son los más frecuentes en su base de entrenamiento.", correct: true },
+                    { text: "Porque tiene un repertorio limitado de respuestas predefinidas." },
+                    { text: "Es coincidencia; genera cada solución desde cero." },
+                    { text: "Porque el usuario no está formulando bien sus prompts." }
+                ],
+                explanation: "Copilot sugiere soluciones comunes porque aprendió de mucho código público y tiende a repetir los patrones más frecuentes que encontró en sus datos de entrenamiento."
+            },
+            {
+                domain: "Funcionamiento y Datos",
+                question: "Estás trabajando sin conexión a Internet temporalmente. ¿Podrá GitHub Copilot seguir generando sugerencias?",
+                options: [
+                    { text: "Sí, almacena localmente un modelo simplificado." },
+                    { text: "No, requiere conexión a Internet para enviar las solicitudes al servicio en la nube.", correct: true },
+                    { text: "Solo para lenguajes interpretados." },
+                    { text: "Sí, pero solo si has habilitado un modo especial de caché offline." }
+                ],
+                explanation: "Copilot necesita conexión a Internet para comunicarse con el servicio en la nube que aloja el modelo. Sin conexión, no puede generar nuevas sugerencias."
+            },
+            {
+                domain: "Funcionamiento y Datos",
+                question: "Verdadero o falso: Cuando usas GitHub Copilot, tu código privado se mantiene privado y no se añade al modelo de entrenamiento global a menos que explícitamente optes por compartirlo.",
+                options: [{ text: "Verdadero", correct: true }, { text: "Falso" }],
+                explanation: "GitHub ha aclarado que no entrena el modelo global con código privado de usuarios de Copilot Business. En Individual, solo si el usuario lo permite explícitamente."
+            },
+            {
+                domain: "Funcionamiento y Datos",
+                question: "Tu equipo pregunta si GitHub Copilot 'entiende' realmente el objetivo del software. ¿Cuál es una explicación precisa?",
+                options: [
+                    { text: "No tiene conocimiento consciente del objetivo; simplemente predice la continuación más probable del código dado el contexto.", correct: true },
+                    { text: "Construye internamente un diagrama UML del proyecto." },
+                    { text: "Lee los comentarios y deduce la intención global." },
+                    { text: "Pregunta a otros usuarios qué harían." }
+                ],
+                explanation: "Copilot no 'entiende' intenciones abstractas; simplemente predice texto (código) estadísticamente probable dados los patrones aprendidos en su entrenamiento."
+            },
+            {
+                domain: "Funcionamiento y Datos",
+                question: "Notas que Copilot no te sugiere nada en un archivo en particular. Menciona una posible razón.",
+                options: [
+                    { text: "El archivo podría ser de un tipo o extensión que Copilot no soporta o reconoce bien.", correct: true },
+                    { text: "No sugiere nada en archivos que no hayan sido cambiados en el último commit." },
+                    { text: "Si el archivo es demasiado corto, se desactiva." },
+                    { text: "Entra en reposo después de cierto tiempo de inactividad." }
+                ],
+                explanation: "Una causa plausible es que Copilot no soporte adecuadamente ese tipo de archivo o idioma. También podría ser que la organización aplicó una exclusión de contenido para ese archivo."
+            },
+            // Dominio 4: Creación de prompts e ingeniería de prompts (9%)
+            {
+                domain: "Prompts",
+                question: "Un desarrollador escribe el comentario: `#Esta función debe leer un archivo CSV, filtrar las filas con valores negativos y devolver la lista de resultados.` ¿Qué principio de prompt crafting ejemplifica este caso?",
+                options: [
+                    { text: "Proporcionar a Copilot una descripción clara y específica de la tarea.", correct: true },
+                    { text: "Utilizar varios idiomas en el prompt." },
+                    { text: "Dar ejemplos del resultado esperado." },
+                    { text: "Hacer prompt de 'cero disparos' (zero-shot)." }
+                ],
+                explanation: "El ejemplo muestra cómo un comentario descriptivo y específico guía a Copilot para generar la implementación. Esto es una práctica de prompt crafting: dar instrucciones claras."
+            },
+            {
+                domain: "Prompts",
+                question: "Verdadero o falso: GitHub Copilot puede entender indicaciones (prompts) escritas en otros idiomas, no solo en inglés, y aun así generar código correcto.",
+                options: [{ text: "Verdadero", correct: true }, { text: "Falso" }],
+                explanation: "Copilot puede entender prompts en múltiples idiomas humanos. Si escribes comentarios en español describiendo la tarea, Copilot usualmente los interpreta correctamente y produce código."
+            },
+            {
+                domain: "Prompts",
+                question: "Has oído hablar de las técnicas 'zero-shot' y 'few-shot'. ¿Cómo se aplican al uso de Copilot?",
+                options: [
+                    { text: "Zero-shot es pedirle una solución sin darle ejemplos; few-shot implica incluir uno o varios ejemplos en el prompt.", correct: true },
+                    { text: "Zero-shot es ejecutar Copilot sin conexión a Internet." },
+                    { text: "Zero-shot es cuando Copilot sugiere código sin que el usuario haya escrito nada." },
+                    { text: "Son términos que se refieren a la cantidad de sugerencias que puede dar." }
+                ],
+                explanation: "En prompt engineering, zero-shot se refiere a no proporcionar ejemplos, solo la instrucción. Few-shot es incluir uno o más ejemplos en el prompt para guiar al modelo."
+            },
+            {
+                domain: "Prompts",
+                question: "Quieres que Copilot genere una función siguiendo un formato muy específico. ¿Cuál de las siguientes estrategias te ayudaría a 'enseñarle' el formato deseado?",
+                options: [
+                    { text: "Proporcionar un ejemplo del formato antes de tu solicitud (técnica few-shot).", correct: true },
+                    { text: "Pedirle repetidamente la sugerencia hasta que encaje." },
+                    { text: "Cambiar la configuración del modelo subyacente." },
+                    { text: "Esta tarea es imposible." }
+                ],
+                explanation: "Proporcionar un ejemplo o plantilla en el prompt (few-shot) es muy efectivo. Si quieres un formato específico, puedes mostrarle un caso y luego pedir otro similar."
+            },
+            {
+                domain: "Prompts",
+                question: "Estás usando Copilot Chat y has mantenido una conversación larga. ¿Cómo influye el 'historial de chat' en las respuestas?",
+                options: [
+                    { text: "Copilot considera todo el historial de la conversación actual como contexto adicional.", correct: true },
+                    { text: "Solo utiliza la última pregunta que le hiciste." },
+                    { text: "Cada nueva pregunta se trata como una conversación totalmente nueva." },
+                    { text: "El historial solo se guarda localmente y no influye en nada." }
+                ],
+                explanation: "En Copilot Chat, el modelo mantiene la conversación: cada nueva respuesta tiene en cuenta lo ya preguntado y respondido antes. El historial es contexto adicional que mejora la coherencia."
+            },
+            {
+                domain: "Prompts",
+                question: "Has notado que cuando haces prompts muy generales, las sugerencias de Copilot a veces no son lo que esperas. ¿Qué características definen un buen prompt? (Selecciona dos opciones.)",
+                options: [
+                    { text: "Ser específico acerca de lo que necesitas.", correct: true },
+                    { text: "Incluir demasiadas instrucciones diferentes a la vez." },
+                    { text: "Añadir contexto relevante (formato de entrada/salida, nombres de variables, etc.).", correct: true },
+                    { text: "Mantener los prompts lo más cortos posible, incluso si son ambiguos." }
+                ],
+                multiSelect: true,
+                explanation: "Los mejores prompts son específicos y contextuales. La claridad y especificidad, así como dar contexto (como tipos de datos o formato deseado), mejoran la precisión."
+            },
+            {
+                domain: "Prompts",
+                question: "¿Cómo determina Copilot el contexto del lenguaje de programación en el que debe sugerir código?",
+                options: [
+                    { text: "Por el tipo de archivo o la sintaxis detectada donde estás escribiendo.", correct: true },
+                    { text: "Necesitas indicárselo manualmente en el prompt." },
+                    { text: "Lo infiere del idioma en que le hablas en el comentario." },
+                    { text: "Siempre sugiere código en el mismo lenguaje que tu proyecto principal." }
+                ],
+                explanation: "Copilot detecta el lenguaje según la extensión del archivo (ej. .py para Python) y la sintaxis del código existente."
+            },
+            {
+                domain: "Prompts",
+                question: "Verdadero o falso: Incluir comentarios detallados y bien escritos en tu código no solo ayuda a los humanos sino que también puede mejorar la calidad de las sugerencias de Copilot.",
+                options: [{ text: "Verdadero", correct: true }, { text: "Falso" }],
+                explanation: "Buenos comentarios y descripciones en el código pueden actuar como prompts para Copilot, orientando las sugerencias. Un comentario bien redactado puede guiar a Copilot a generar código correcto."
+            },
+            {
+                domain: "Prompts",
+                question: "Estás depurando un problema y decides pedirle ayuda a Copilot Chat: 'No entiendo por qué esta función está devolviendo un valor negativo. ¿Puedes encontrar el error?'. ¿Qué tipo de respuesta puedes esperar?",
+                options: [
+                    { text: "Copilot posiblemente examinará el código y te dará una explicación, señalando dónde podría estar el error lógico.", correct: true },
+                    { text: "Copilot ejecutará el código internamente para encontrar el input que falla." },
+                    { text: "Copilot no puede ayudar en depuración; solo sugiere código." },
+                    { text: "Copilot reescribirá completamente la función." }
+                ],
+                explanation: "Copilot Chat, dado el código y la pregunta, probablemente explicará el código y tratará de señalar el posible error lógico. Actuará como un compañero revisor."
+            },
+            // Dominio 5: Casos de uso de IA para desarrolladores (14%)
+            {
+                domain: "Casos de uso",
+                question: "Un miembro de tu equipo está aprendiendo un nuevo lenguaje (Go). ¿Cómo podría GitHub Copilot ayudarlo?",
+                options: [
+                    { text: "Podría generar ejemplos de código idiomáticos en Go cuando escribe comentarios o firmas de funciones.", correct: true },
+                    { text: "Traducirá automáticamente todo su código de Python a Go sin errores." },
+                    { text: "Le explicará teoría del lenguaje en la ventana del editor." },
+                    { text: "No es útil para aprender lenguajes nuevos." }
+                ],
+                explanation: "Copilot puede ser de gran ayuda al proporcionar ejemplos de código en el nuevo lenguaje. Esto acelera el aprendizaje mostrando patrones idiomáticos."
+            },
+            {
+                domain: "Casos de uso",
+                question: "Estás trabajando con un código en Python y necesitas convertir una función a JavaScript. ¿Puede GitHub Copilot ayudar a 'traducir' código?",
+                options: [
+                    { text: "Sí, si pegas la función Python y comienzas a escribirla en JavaScript, Copilot suele sugerir la versión en JavaScript.", correct: true },
+                    { text: "No, solo opera dentro del mismo lenguaje del archivo actual." },
+                    { text: "Sí, pero primero debes entrenarlo." },
+                    { text: "Solo traduce entre lenguajes muy similares." }
+                ],
+                explanation: "Copilot puede ayudar a traducir código. Si escribes la función en un lenguaje y pides la versión en otro (ej. mediante un comentario), te sugerirá la lógica equivalente."
+            },
+            {
+                domain: "Casos de uso",
+                question: "Los miembros de tu equipo con frecuencia cambian entre varios proyectos, lo cual conlleva cambios de contexto. ¿Cómo puede GitHub Copilot aliviar ese costo?",
+                options: [
+                    { text: "Puede ofrecer sugerencias de código coherentes con el archivo en el que estés trabajando, ayudándote a mantener el ritmo.", correct: true },
+                    { text: "Configurando perfiles de contexto, carga documentación relevante." },
+                    { text: "Mantiene una memoria a largo plazo de lo que hiciste en otro proyecto." },
+                    { text: "No tiene efecto; funciona por archivo." }
+                ],
+                explanation: "Copilot reduce el 'cambio de contexto' porque ayuda con la sintaxis y recordatorios en cada lenguaje automáticamente, aliviando la carga mental del desarrollador."
+            },
+            {
+                domain: "Casos de uso",
+                question: "Un desarrollador quiere escribir documentación para una función compleja. ¿De qué manera puede GitHub Copilot ayudar?",
+                options: [
+                    { text: "Si escribe `/**` encima de una función en JavaScript o Java, puede sugerir un bloque de comentario JSDoc/JavaDoc.", correct: true },
+                    { text: "Autogenera un archivo README completo para el proyecto." },
+                    { text: "No es capaz de ayudar con documentación, solo código." },
+                    { text: "Rellena la documentación solo si detecta que es un proyecto con muchos stars." }
+                ],
+                explanation: "Copilot puede generar comentarios de documentación. En lenguajes con formato de docstrings (como JavaDoc o JSDoc), si empiezas el bloque, sugiere los detalles."
+            },
+            {
+                domain: "Casos de uso",
+                question: "Quieres generar datos de ejemplo para probar una función. ¿Cómo podría Copilot facilitar esta tarea?",
+                options: [
+                    { text: "Puedes escribir un comentario indicando '// datos de ejemplo' y podría sugerir instancias de datos falsas.", correct: true },
+                    { text: "Tiene una base de datos de datasets conocidos y los importará." },
+                    { text: "Preguntará en Stack Overflow qué datos usar." },
+                    { text: "Esta tarea es manual, no genera contenido a menos que sea código." }
+                ],
+                explanation: "Copilot sugiere datos de ejemplo si detecta que los necesitas. Esto agiliza crear casos de prueba o demos. También puedes pedírselo a Chat."
+            },
+            {
+                domain: "Casos de uso",
+                question: "Tienen una aplicación legacy que quieren modernizar (refactorizar). ¿Cómo podría ayudar Copilot?",
+                options: [
+                    { text: "Puede sugerir refactorizaciones cuando detecta patrones antiguos o al reescribir funciones en un estilo más moderno.", correct: true },
+                    { text: "Tiene un modo legacy que convierte automáticamente todo el proyecto." },
+                    { text: "Ignora el estilo; solo continúa el código tal como está." },
+                    { text: "Podría traducir el proyecto a un lenguaje más moderno." }
+                ],
+                explanation: "Copilot puede sugerir refactorizaciones modernas. Si en código antiguo escribes un intento de usar una característica nueva, Copilot completará con sintaxis moderna, asistiendo paso a paso."
+            },
+            {
+                domain: "Casos de uso",
+                question: "Durante el desarrollo, sueles alternar entre escribir código y depurar errores. ¿Cómo puede Copilot asistir en la depuración?",
+                options: [
+                    { text: "Puedes pegar un mensaje de error o stack trace en Copilot Chat y preguntarle qué podría estar mal.", correct: true },
+                    { text: "Tiene un depurador integrado." },
+                    { text: "No ayuda con depuración, solo sugiere código." },
+                    { text: "Detecta y corrige automáticamente el código asociado a un error." }
+                ],
+                explanation: "Copilot Chat es útil en depuración: puedes pegar un error o describir un problema, y te explicará posibles causas o soluciones."
+            },
+            {
+                domain: "Casos de uso",
+                question: "Un miembro de tu equipo está realizando análisis de datos con Python y usando pandas/matplotlib. ¿Cómo podría Copilot ser útil?",
+                options: [
+                    { text: "Puede sugerir rápidamente el código para tareas comunes (cargar un DataFrame, filtrar datos, generar un gráfico) a partir de comentarios.", correct: true },
+                    { text: "Configurando Copilot en modo 'científico', validará los resultados." },
+                    { text: "Entrenará un modelo de machine learning por ti." },
+                    { text: "No es útil porque las soluciones suelen ser muy específicas." }
+                ],
+                explanation: "En ciencia de datos, Copilot puede generar boilerplate para muchas tareas, desde importar librerías hasta usar sus funciones, acelerando el flujo de trabajo."
+            },
+            {
+                domain: "Casos de uso",
+                question: "Estás utilizando Copilot Chat y le proporcionas el código de una función preguntando: '¿Ves algún posible problema de rendimiento?'. ¿Qué esperas que haga?",
+                options: [
+                    { text: "Analizará el código y puede identificar patrones ineficientes (bucles anidados, etc.) y sugerirte optimizaciones.", correct: true },
+                    { text: "Ejecutará pruebas de rendimiento automáticamente." },
+                    { text: "Marcará en tu editor las líneas más lentas en color rojo." },
+                    { text: "Ignorará preguntas de rendimiento." }
+                ],
+                explanation: "Si le preguntas a Copilot Chat sobre rendimiento, te dará una respuesta analítica, examinando la función y comentando posibles ineficiencias."
+            },
+            {
+                domain: "Casos de uso",
+                question: "¿En cuál de las siguientes tareas Copilot tiene limitaciones claras y podría no ser muy útil?",
+                options: [
+                    { text: "Determinar requisitos de software o diseñar la arquitectura de alto nivel de una aplicación.", correct: true },
+                    { text: "Escribir funciones utilitarias repetitivas (getters, setters)." },
+                    { text: "Generar código boilerplate para conectarse a una base de datos." },
+                    { text: "Sugerir casos de prueba unitarios básicos." }
+                ],
+                explanation: "Copilot es menos útil en tareas de alto nivel como requisitos o arquitectura. No reemplaza el entendimiento humano para definir qué debe hacer el software o cómo estructurarlo."
+            },
+            {
+                domain: "Casos de uso",
+                question: "¿Cómo puede GitHub Copilot ayudar durante el ciclo de vida del desarrollo de software (SDLC)? (Selecciona tres etapas)",
+                options: [
+                    { text: "Implementación/codificación", correct: true },
+                    { text: "Pruebas", correct: true },
+                    { text: "Mantenimiento/refactorización", correct: true },
+                    { text: "Recolección de requisitos" },
+                    { text: "Revisión de código*" }
+                ],
+                multiSelect: true,
+                explanation: "Copilot puede ayudar en: Implementación (su caso principal), Pruebas (generando tests), Mantenimiento/Refactorización (sugiriendo mejoras) y Revisión de Código (resumiendo PRs). La recolección de requisitos es una tarea de alto nivel donde no es útil."
+            },
+            {
+                domain: "Casos de uso",
+                question: "¿Qué herramienta o métrica ha anunciado GitHub para medir el impacto de Copilot en la productividad?",
+                options: [
+                    { text: "La API de productividad de GitHub Copilot, que permite ver datos como el porcentaje de código sugerido.", correct: true },
+                    { text: "Un panel en tiempo real dentro del editor." },
+                    { text: "Un sistema de puntos de GitHub." },
+                    { text: "No existe ninguna métrica; la productividad es subjetiva." }
+                ],
+                explanation: "GitHub anunció una API/indicadores de productividad de Copilot que miden qué porcentaje de código fue sugerido por Copilot en un periodo. En el panel de Copilot para Business se dan estas métricas."
+            },
+            {
+                domain: "Casos de uso",
+                question: "¿Cómo se utilizaría la API de productividad de GitHub Copilot en la práctica?",
+                options: [
+                    { text: "Un administrador podría habilitar la recolección de telemetría y luego usar esta API para obtener reportes.", correct: true },
+                    { text: "Es una API para que Copilot optimice su propio rendimiento." },
+                    { text: "Cada desarrollador la ejecuta localmente." },
+                    { text: "Se integra con Jira o Azure DevOps." }
+                ],
+                explanation: "Un administrador de empresa puede activar telemetría y luego usar la Productivity API para ver datos de uso; por ejemplo, el porcentaje de líneas aceptadas de Copilot."
+            },
+            {
+                domain: "Casos de uso",
+                question: "Tras varios meses usando Copilot, tu equipo nota que confían en él para acelerar tareas rutinarias pero siguen detectando problemas en sugerencias complejas. ¿Qué limitación importante siempre se debe recordar?",
+                options: [
+                    { text: "Que Copilot no garantiza exactitud ni adecuación total del código sugerido, por lo que siempre se debe revisar y probar.", correct: true },
+                    { text: "Que Copilot se vuelve menos útil cuanto más se usa." },
+                    { text: "Que usar Copilot está restringido legalmente solo a proyectos open-source." },
+                    { text: "Que Copilot reemplazará eventualmente a los desarrolladores." }
+                ],
+                explanation: "Siempre se debe recordar que Copilot no garantiza corrección. Por muy útil que sea, las sugerencias deben revisarse, probarse e integrarse con juicio humano."
+            },
+            // Dominio 6: Pruebas con GitHub Copilot (9%)
+            {
+                domain: "Pruebas",
+                question: "Quieres aumentar la cobertura de pruebas de tu código. ¿Cómo podrías hacer que Copilot te sugiera una prueba unitaria para una función dada?",
+                options: [
+                    { text: "En tu archivo de test, comienza a escribir el nombre de una función de prueba y un comentario del objetivo." },
+                    { text: "Copilot no puede sugerir casos de prueba." },
+                    { text: "Pídele a Copilot Chat: 'Escribe una prueba unitaria para la función X'." },
+                    { text: "Ambas A y C son formas válidas de obtener ayuda en la generación de tests.", correct: true }
+                ],
+                explanation: "Puedes hacer ambas cosas: En un archivo de test, comenzar a escribir un test y Copilot a menudo completará el cuerpo. O en Copilot Chat, pedir 'escribe un test para X' te generará un snippet de prueba."
+            },
+            {
+                domain: "Pruebas",
+                question: "Has escrito varias pruebas unitarias básicas. ¿Cómo podría Copilot ayudarte a identificar casos extremos o adicionales que olvidaste?",
+                options: [
+                    { text: "Si le proporcionas tu función y pruebas existentes, podría sugerir pruebas para 'edge cases' no cubiertos.", correct: true },
+                    { text: "Ejecuta automáticamente tu código con miles de valores." },
+                    { text: "Prioriza solo casos típicos, no sugiere edge cases." },
+                    { text: "Tiene un modo de 'análisis de cobertura'." }
+                ],
+                explanation: "Si proporcionas el código de la función y los tests actuales a Copilot y preguntas, puede detectar casos no cubiertos (casos extremos), sugiriendo añadir esos tests."
+            },
+            {
+                domain: "Pruebas",
+                question: "Verdadero o falso: GitHub Copilot es capaz de generar tanto tests unitarios como tests de integración, siempre que el prompt o el contexto lo orienten.",
+                options: [{ text: "Verdadero", correct: true }, { text: "Falso" }],
+                explanation: "Copilot puede generar diferentes tipos de test siempre que entienda el contexto. Con instrucciones adecuadas puede escribir un test de integración o end-to-end."
+            },
+            {
+                domain: "Pruebas",
+                question: "Decides probar Copilot para generar un test de integración. ¿Qué limitación debes tener en cuenta?",
+                options: [
+                    { text: "Puede no tener conocimiento del estado global o de la configuración necesaria, necesitando ajustes manuales.", correct: true },
+                    { text: "Solo sugiere tests unitarios simples, nunca integración." },
+                    { text: "Escribirá la prueba y también la configuración de entorno automáticamente." },
+                    { text: "Si la prueba generada falla, la corregirá en un segundo intento." }
+                ],
+                explanation: "En tests complejos de integración, Copilot no sabe los detalles de tu entorno (DB, servicios, etc.) a menos que se los proveas. Puede generar un test que parezca correcto pero que necesite ajustes."
+            },
+            {
+                domain: "Pruebas",
+                question: "Después de generar varias pruebas con Copilot, ¿qué deberías hacer siempre antes de confiar en ellas?",
+                options: [
+                    { text: "Ejecutarlas contra tu código para verificar que detectan comportamientos esperados y no tienen errores lógicos.", correct: true },
+                    { text: "Nada, si Copilot las generó es porque son correctas." },
+                    { text: "Revisar que el estilo de código de los tests coincida con tus preferencias." },
+                    { text: "Enviar las pruebas a otro servicio de IA para doble verificación." }
+                ],
+                explanation: "Siempre debes ejecutar y validar las pruebas generadas. Copilot puede cometer errores en la lógica del test (por ejemplo, esperar un resultado equivocado)."
+            },
+            {
+                domain: "Pruebas",
+                question: "Tienes una serie de funciones ya cubiertas por tests, pero quieres asegurarte de que son efectivas. ¿Cómo podría Copilot ayudar a 'mejorar la efectividad' de las pruebas existentes?",
+                options: [
+                    { text: "Podrías seleccionar una función y sus tests, y pedirle a Copilot Chat: '¿Cómo puedo mejorar estas pruebas?'.", correct: true },
+                    { text: "Puede marcar automáticamente qué pruebas son innecesarias." },
+                    { text: "Reescribe las pruebas en un formato más legible pero mantiene la misma lógica." },
+                    { text: "No trabaja con pruebas existentes, solo genera nuevas." }
+                ],
+                explanation: "Con Copilot Chat, dándole tus pruebas existentes y código, puedes preguntar cómo mejorarlas. Copilot podría sugerir casos adicionales o verificaciones más estrictas."
+            },
+            {
+                domain: "Pruebas",
+                question: "Estás escribiendo una prueba y no recuerdas la sintaxis exacta de una aserción (cómo usar `assertRaises` en Pytest). ¿Cómo puede Copilot agilizar esta situación?",
+                options: [
+                    { text: "Escribe el comienzo de la línea de aserción o un comentario sobre lo que quieres comprobar y deja que Copilot te sugiera la sintaxis.", correct: true },
+                    { text: "Abrirá automáticamente la documentación de Pytest." },
+                    { text: "No puede ayudar; necesitas buscar la sintaxis manualmente." },
+                    { text: "Pregúntale en Copilot Chat directamente." }
+                ],
+                explanation: "Copilot te ayuda con sintaxis. En Pytest, si escribes un comentario '# comprobar que lanza X', Copilot sugiere el assert Raises correcto. También puedes preguntarle a Chat."
+            },
+            // Dominio 7: Fundamentos de privacidad y exclusiones de contexto (15%)
+            {
+                domain: "Privacidad y Exclusiones",
+                question: "¿Qué debes tener presente acerca de la privacidad al usar Copilot con código de tu empresa?",
+                options: [
+                    { text: "Si usas Copilot Individual y no has deshabilitado la recopilación de datos, fragmentos de tu código podrían ser enviados a GitHub. En un contexto empresarial, conviene usar Copilot Business.", correct: true },
+                    { text: "Copilot enviará tus tests a los repositorios públicos de GitHub." },
+                    { text: "Es preferible no usar Copilot en tests porque podría filtrar la lógica interna." },
+                    { text: "Copilot aisla completamente el código de pruebas." }
+                ],
+                explanation: "En Copilot Business, la política es no retener fragmentos de código. En Individual, conviene deshabilitar la recopilación de datos si te preocupa la privacidad. Además, Business permite exclusiones de contenido."
+            },
+            {
+                domain: "Privacidad y Exclusiones",
+                question: "Tu equipo quiere asegurar que el uso de Copilot no comprometa datos sensibles en el código. Mencionen una medida que Copilot Business ofrece.",
+                options: [
+                    { text: "La capacidad de excluir archivos o carpetas enteras del alcance de Copilot.", correct: true },
+                    { text: "Un modo seguro que enmascara variables sensibles." },
+                    { text: "Detecta si estás en un test con datos sensibles y se desactiva." },
+                    { text: "Ninguna, no toca datos sensibles por diseño." }
+                ],
+                explanation: "Copilot Business permite excluir archivos/carpetas con datos sensibles, tanto a nivel de repo como de organización. Esto evita que se envíen esas partes al servicio."
+            },
+            {
+                domain: "Privacidad y Exclusiones",
+                question: "Tu equipo desarrolla una aplicación que maneja datos médicos muy sensibles (PII). ¿Qué medida ofrece GitHub Copilot para evitar que contenido sensible sea incluido en las sugerencias?",
+                options: [
+                    { text: "Configurar un archivo especial (como `.copilotignore`) o las opciones de la organización para excluir ciertas rutas o archivos que contienen PII.", correct: true },
+                    { text: "Activar el modo médico de Copilot." },
+                    { text: "Entrenar un modelo Copilot específico de la empresa." },
+                    { text: "Copilot no ofrece nada en ese aspecto." }
+                ],
+                explanation: "La forma correcta es usar la característica de exclusión de contenido. Un administrador puede definir patrones de archivos a excluir en la configuración del repositorio u organización para asegurar que Copilot ignore archivos con PII."
+            },
+            {
+                domain: "Privacidad y Exclusiones",
+                question: "Verdadero o falso: GitHub no reclama propiedad sobre el código que te sugiere Copilot; cualquier fragmento generado puede ser utilizado y licenciado por ti, siempre que respetes las posibles licencias de origen si el código es coincidente.",
+                options: [{ text: "Verdadero", correct: true }, { text: "Falso" }],
+                explanation: "GitHub ha dejado claro que no reclama la propiedad de las salidas de Copilot; la sugerencia generada es considerada tuya. Sin embargo, debes ser consciente de las licencias subyacentes."
+            },
+            {
+                domain: "Privacidad y Exclusiones",
+                question: "La 'detección de duplicados' es una característica de Copilot. ¿Qué hace exactamente este filtro?",
+                options: [
+                    { text: "Detecta y bloquea sugerencias de Copilot que sean muy similares a código público conocido en GitHub.", correct: true },
+                    { text: "Elimina código duplicado dentro de tu propio proyecto." },
+                    { text: "Evita que dos desarrolladores de la misma organización obtengan la misma sugerencia." },
+                    { text: "Garantiza que no genere el mismo código para dos usuarios distintos." }
+                ],
+                explanation: "El filtro de duplicados detecta coincidencias con código público (aprox >150 caracteres) y las bloquea si está activado, para evitar sugerencias potencialmente copiadas de proyectos open-source."
+            },
+            {
+                domain: "Privacidad y Exclusiones",
+                question: "Estás explicándole a tu equipo la ventaja de usar Copilot Business en términos de protección legal, mencionando la indemnización de propiedad intelectual (IP indemnity). ¿Qué cubre?",
+                options: [
+                    { text: "GitHub se compromete a defender legalmente a tu empresa si una sugerencia resulta infringir un copyright, bajo ciertas condiciones.", correct: true },
+                    { text: "Que tu empresa pase a ser automáticamente propietaria de cualquier código público." },
+                    { text: "Una garantía de que Copilot nunca sugerirá código con licencia restrictiva." },
+                    { text: "Un seguro de que Copilot generará código libre de cualquier derecho." }
+                ],
+                explanation: "Copilot Business/Enterprise incluye IP indemnity: GitHub se compromete a defenderte en juicios de copyright si un snippet sugerido causa problemas, siempre que tengas activo el filtro de duplicados."
+            },
+            {
+                domain: "Privacidad y Exclusiones",
+                question: "Como desarrollador individual preocupado por la privacidad, ¿qué opción puedes desactivar para asegurarte de que GitHub no retenga fragmentos de tu código para mejorar el producto?",
+                options: [
+                    { text: "En tu perfil de GitHub, navegar a 'Your Copilot' y desmarcar la opción 'Permitir que GitHub use mis fragmentos de código para mejorar el producto'.", correct: true },
+                    { text: "No hay tal opción; todo el código se usa para mejora." },
+                    { text: "Revocar el permiso de lectura en tus repos." },
+                    { text: "Usar siempre Copilot en modo incógnito." }
+                ],
+                explanation: "En la configuración de Copilot en GitHub, existe la casilla 'Allow GitHub to use my code snippets to improve product'. Debes desmarcarla para que tus datos no se usen en entrenamiento/retención."
+            },
+            {
+                domain: "Privacidad y Exclusiones",
+                question: "Estás en un archivo donde Copilot no muestra sugerencias. ¿Cómo se configuran típicamente las exclusiones de contenido?",
+                options: [
+                    { text: "Un administrador define patrones de archivos o carpetas en la configuración de Copilot (en GitHub.com) para ese repo/org que Copilot debe ignorar.", correct: true },
+                    { text: "Copilot automáticamente detecta archivos con datos sensibles." },
+                    { text: "Las exclusiones solo existen a nivel de organización, no por repositorio." },
+                    { text: "Se añade un comentario `@copilot-ignore` al inicio del archivo." }
+                ],
+                explanation: "La exclusión de contenido se configura normalmente en la configuración del repositorio u organización en GitHub.com, donde puedes especificar rutas/patrones a excluir."
+            },
+            {
+                domain: "Privacidad y Exclusiones",
+                question: "Estás configurando el archivo del editor (`copilot-editor-config.json`) para reforzar la privacidad. Quieres asegurarte de que Copilot no acceda a tus repositorios privados. ¿Qué ajuste deberías poner?",
+                options: [
+                    { text: "'allowPrivateRepositories': false", correct: true },
+                    { text: "'blockSuggestions': true" },
+                    { text: "'enterpriseOnly': true" },
+                    { text: "No existe un archivo de configuración de Copilot a nivel de editor." }
+                ],
+                explanation: "En el archivo de configuración del editor, la opción 'allowPrivateRepositories': false impediría que la extensión Copilot acceda a repos privados."
+            },
+            {
+                domain: "Privacidad y Exclusiones",
+                question: "¿Cuáles prácticas recomendarías para proteger la información confidencial al utilizar GitHub Copilot? (Selecciona todas las opciones aplicables.)",
+                options: [
+                    { text: "Utilizar GitHub Copilot Business/Enterprise.", correct: true },
+                    { text: "Configurar exclusiones de contenido para archivos que contengan secretos.", correct: true },
+                    { text: "Deshabilitar la recopilación de datos en la configuración de Copilot.", correct: true },
+                    { text: "Evitar incluir secretos o información sensible directamente en el código/prompt.", correct: true },
+                    { text: "Revisar manualmente que las sugerencias no estén exponiendo fragmentos sensibles.", correct: true }
+                ],
+                multiSelect: true,
+                explanation: "Todas las opciones son buenas prácticas recomendadas. Usar planes empresariales, excluir contenido sensible, deshabilitar la telemetría, no incluir secretos en los prompts y revisar manualmente las sugerencias."
+            },
+            {
+                domain: "Privacidad y Exclusiones",
+                question: "Observas que Copilot te sugirió una porción de código que incluye una función de cifrado débil y un comentario '// Copilot: uso de MD5, no seguro'. ¿Qué deberías hacer?",
+                options: [
+                    { text: "Apreciar el aviso implícito: Debes reemplazar o mejorar ese código en lugar de aceptarlo ciegamente.", correct: true },
+                    { text: "Ignorar el comentario, seguro que es suficientemente bueno." },
+                    { text: "Hacer que Copilot reescriba el código hasta que no use MD5." },
+                    { text: "Asumir que si Copilot lo sugirió, MD5 es aceptable." }
+                ],
+                explanation: "En este caso, Copilot incluso insinuó que MD5 no es seguro. Debes seguir esa pista y mejorar el código, usando un hash más seguro. El desarrollador debe actuar sobre estas advertencias."
+            },
+            {
+                domain: "Privacidad y Exclusiones",
+                question: "Verdadero o falso: Si configuras correctamente una exclusión de contenido para un archivo, GitHub Copilot nunca usará ninguna información de ese archivo para generar sugerencias.",
+                options: [{ text: "Verdadero" }, { text: "Falso", correct: true }],
+                explanation: "Las exclusiones previenen que Copilot acceda directamente a esos archivos, pero no garantizan al 100% que nada de su información influya. Información derivada (tipos, nombres de símbolos) podría filtrarse indirectamente."
+            },
+            {
+                domain: "Privacidad y Exclusiones",
+                question: "Estás revisando una pull request grande en GitHub. ¿Cómo podría Copilot Chat ayudarte a revisar el código con un foco en seguridad y rendimiento?",
+                options: [
+                    { text: "Podrías usar Copilot Chat en la página de la PR para preguntarle cosas como: '¿Ves posibles vulnerabilidades?' o '¿Hay alguna parte ineficiente?'.", correct: true },
+                    { text: "Copilot Chat aprueba o rechaza PRs automáticamente." },
+                    { text: "Copilot Chat ejecuta el código de la PR." },
+                    { text: "Copilot no puede acceder al contexto de la PR en GitHub.com." }
+                ],
+                explanation: "Con Copilot Chat en una PR, puedes preguntarle sobre seguridad y rendimiento en los cambios. Chat (especialmente con GPT-4) puede analizar el diff y proporcionar observaciones útiles."
+            },
+            {
+                domain: "Privacidad y Exclusiones",
+                question: "¿Cómo puedes aprovechar Copilot (especialmente Chat) para identificar posibles vulnerabilidades en tu base de código?",
+                options: [
+                    { text: "Puedes copiar y pegar un trozo de código en Copilot Chat con la pregunta '¿Hay vulnerabilidades conocidas en este código?'.", correct: true },
+                    { text: "Tiene una base de datos interna de CVEs." },
+                    { text: "Al escribir código, evita que cometas errores de seguridad." },
+                    { text: "Envía tu código al equipo de seguridad de GitHub." }
+                ],
+                explanation: "Copilot Chat puede actuar como asistente de seguridad: al presentarle código, puede reconocer patrones vulnerables conocidos (ej. inyección SQL) y advertirte."
+            },
+            {
+                domain: "Privacidad y Exclusiones",
+                question: "Estás optimizando una sección de tu aplicación que es muy lenta. ¿Cómo podría Copilot asistirte para mejorar el rendimiento?",
+                options: [
+                    { text: "Podrías resaltar el fragmento y escribir un comentario '# Optimizar esta función' o usar el comando `/optimize` en Chat.", correct: true },
+                    { text: "Tiene un modo de alto rendimiento que se activa en la configuración." },
+                    { text: "Señalará en rojo las partes lentas." },
+                    { text: "No ayuda con rendimiento, solo con corrección funcional." }
+                ],
+                explanation: "Copilot puede ayudar a optimizar. Por ejemplo, con un comando `/optimize` en Copilot Chat te sugiere mejoras, o también con un comentario `# optimizar`."
+            },
+            {
+                domain: "Privacidad y Exclusiones",
+                question: "Si un administrador habilita el filtro de coincidencia de código público en Copilot, ¿qué consecuencia tiene en la práctica?",
+                options: [
+                    { text: "Que los desarrolladores no verán sugerencias que contengan fragmentos de código mayores (~150 caracteres) idénticos a código público existente.", correct: true },
+                    { text: "Que Copilot dejará de sugerir código por completo." },
+                    { text: "Que Copilot funcionará más lento." },
+                    { text: "Ninguna, ese filtro es solo informativo." }
+                ],
+                explanation: "Activar el filtro de coincidencia de código público en 'Block' implica que ninguna sugerencia con >~150 caracteres coincidentes con código público se mostrará, reduciendo el riesgo de plagio involuntario."
+            },
+            {
+                domain: "Privacidad y Exclusiones",
+                question: "Al usar GitHub Copilot de manera responsable, los desarrolladores aún deben asumir ciertas responsabilidades. ¿Cuál de las siguientes NO es una práctica recomendada o requerida?",
+                options: [
+                    { text: "Revisar y probar el código generado." },
+                    { text: "Atribuir o mencionar a GitHub Copilot en los comentarios de cada bloque de código aceptado.", correct: true },
+                    { text: "Ser conscientes de las licencias." },
+                    { text: "No incluir datos confidenciales o secretos en los prompts." }
+                ],
+                explanation: "No es necesario ni requerido atribuir a Copilot en los comentarios del código generado. Copilot es una herramienta, y el código generado es considerado como escrito por el usuario."
+            }
+        ];
+
+
+        const startScreen = document.getElementById('start-screen');
+        const quizScreen = document.getElementById('quiz-screen');
+        const resultScreen = document.getElementById('result-screen');
+        const reviewScreen = document.getElementById('review-screen');
+        
+        const startBtn = document.getElementById('start-btn');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const finishBtn = document.getElementById('finish-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const reviewBtn = document.getElementById('review-btn');
+        const backToResultsBtn = document.getElementById('back-to-results-btn');
+
+        const questionNumberEl = document.getElementById('question-number');
+        const domainNameEl = document.getElementById('domain-name');
+        const progressBarEl = document.getElementById('progress-bar');
+        const questionTextEl = document.getElementById('question-text');
+        const multiSelectNoteEl = document.getElementById('multi-select-note');
+        const optionsContainer = document.getElementById('options-container');
+
+        const scoreEl = document.getElementById('score');
+        const correctAnswersEl = document.getElementById('correct-answers');
+        const incorrectAnswersEl = document.getElementById('incorrect-answers');
+
+        let currentQuestionIndex = 0;
+        let userAnswers = new Array(quizData.length).fill(null);
+
+        function startQuiz() {
+            startScreen.classList.add('hidden');
+            quizScreen.classList.remove('hidden');
+            resultScreen.classList.add('hidden');
+            reviewScreen.classList.add('hidden');
+            currentQuestionIndex = 0;
+            userAnswers.fill(null);
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            const questionData = quizData[currentQuestionIndex];
+            
+            questionNumberEl.textContent = currentQuestionIndex + 1;
+            domainNameEl.textContent = questionData.domain;
+            questionTextEl.innerHTML = questionData.question;
+            optionsContainer.innerHTML = '';
+            
+            progressBarEl.style.width = `${((currentQuestionIndex + 1) / quizData.length) * 100}%`;
+            
+            const isMulti = questionData.multiSelect === true;
+            multiSelectNoteEl.classList.toggle('hidden', !isMulti);
+
+            questionData.options.forEach((option, index) => {
+                const optionElement = document.createElement('div');
+                optionElement.classList.add('option', 'p-4', 'border-2', 'border-gray-500', 'rounded-lg', 'cursor-pointer', 'transition-colors');
+                optionElement.textContent = option.text;
+                optionElement.dataset.index = index;
+
+                optionElement.addEventListener('click', () => selectOption(optionElement, index, isMulti));
+
+                if(userAnswers[currentQuestionIndex] !== null) {
+                    if (isMulti && userAnswers[currentQuestionIndex].includes(index)) {
+                        optionElement.classList.add('selected');
+                    } else if (!isMulti && userAnswers[currentQuestionIndex] === index) {
+                        optionElement.classList.add('selected');
+                    }
+                }
+
+                optionsContainer.appendChild(optionElement);
+            });
+            
+            updateNavigation();
+        }
+
+        function selectOption(element, index, isMulti) {
+            if (isMulti) {
+                element.classList.toggle('selected');
+                if (userAnswers[currentQuestionIndex] === null) {
+                    userAnswers[currentQuestionIndex] = [];
+                }
+                const selectedIndex = userAnswers[currentQuestionIndex].indexOf(index);
+                if (selectedIndex > -1) {
+                    userAnswers[currentQuestionIndex].splice(selectedIndex, 1);
+                } else {
+                    userAnswers[currentQuestionIndex].push(index);
+                }
+            } else {
+                // Deselect previous
+                const selected = optionsContainer.querySelector('.selected');
+                if (selected) {
+                    selected.classList.remove('selected');
+                }
+                element.classList.add('selected');
+                userAnswers[currentQuestionIndex] = index;
+            }
+        }
+
+        function updateNavigation() {
+            prevBtn.disabled = currentQuestionIndex === 0;
+            if (currentQuestionIndex === quizData.length - 1) {
+                nextBtn.classList.add('hidden');
+                finishBtn.classList.remove('hidden');
+            } else {
+                nextBtn.classList.remove('hidden');
+                finishBtn.classList.add('hidden');
+            }
+        }
+        
+        function showNextQuestion() {
+            if (currentQuestionIndex < quizData.length - 1) {
+                currentQuestionIndex++;
+                loadQuestion();
+            }
+        }
+        
+        function showPrevQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                loadQuestion();
+            }
+        }
+
+        function finishQuiz() {
+            let score = 0;
+            let correctCount = 0;
+            quizData.forEach((question, index) => {
+                const userAnswer = userAnswers[index];
+                if (userAnswer === null) return;
+                
+                if (question.multiSelect) {
+                    const correctOptions = question.options
+                        .map((opt, i) => opt.correct ? i : -1)
+                        .filter(i => i !== -1);
+                    const isCorrect = userAnswer.length === correctOptions.length &&
+                                      userAnswer.every(val => correctOptions.includes(val));
+                    if (isCorrect) correctCount++;
+                } else {
+                    if (question.options[userAnswer] && question.options[userAnswer].correct) {
+                        correctCount++;
+                    }
+                }
+            });
+            
+            const percentage = Math.round((correctCount / quizData.length) * 100);
+            
+            scoreEl.textContent = `${percentage}%`;
+            correctAnswersEl.textContent = correctCount;
+            incorrectAnswersEl.textContent = quizData.length - correctCount;
+
+            quizScreen.classList.add('hidden');
+            resultScreen.classList.remove('hidden');
+        }
+
+        function reviewAnswers() {
+            resultScreen.classList.add('hidden');
+            reviewScreen.classList.remove('hidden');
+            
+            const reviewContent = document.getElementById('review-content');
+            reviewContent.innerHTML = '';
+
+            quizData.forEach((question, index) => {
+                const questionDiv = document.createElement('div');
+                questionDiv.classList.add('p-6', 'bg-gray-700', 'rounded-lg');
+
+                let questionHTML = `<div class="mb-4">
+                    <p class="font-bold text-lg text-gray-300">Pregunta ${index + 1}:</p>
+                    <p class="text-white">${question.question}</p>
+                </div>
+                <div class="space-y-2">`;
+                
+                question.options.forEach((option, optIndex) => {
+                    let classes = 'option p-3 rounded-md disabled ';
+                    const userAnswer = userAnswers[index];
+                    const isSelected = question.multiSelect ? userAnswer?.includes(optIndex) : userAnswer === optIndex;
+                    
+                    if (option.correct) {
+                        classes += 'correct ';
+                    } else if (isSelected && !option.correct) {
+                        classes += 'incorrect ';
+                    } else {
+                        classes += 'bg-gray-600 ';
+                    }
+
+                    if (isSelected) {
+                        classes += 'border-2 border-blue-400 ';
+                    }
+                    
+                    questionHTML += `<div class="${classes}">${option.text}</div>`;
+                });
+
+                questionHTML += `</div><div class="mt-4 p-3 bg-gray-800 rounded-md">
+                    <p class="font-semibold text-blue-300">Explicación:</p>
+                    <p class="text-gray-400">${question.explanation}</p>
+                </div>`;
+
+                questionDiv.innerHTML = questionHTML;
+                reviewContent.appendChild(questionDiv);
+            });
+        }
+        
+        startBtn.addEventListener('click', startQuiz);
+        nextBtn.addEventListener('click', showNextQuestion);
+        prevBtn.addEventListener('click', showPrevQuestion);
+        finishBtn.addEventListener('click', finishQuiz);
+        restartBtn.addEventListener('click', startQuiz);
+        reviewBtn.addEventListener('click', reviewAnswers);
+        backToResultsBtn.addEventListener('click', () => {
+            reviewScreen.classList.add('hidden');
+            resultScreen.classList.remove('hidden');
+        });
+
+    </script>
+</body>
+</html>
